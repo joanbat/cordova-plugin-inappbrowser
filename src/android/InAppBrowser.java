@@ -18,6 +18,7 @@
 */
 package org.apache.cordova.inappbrowser;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -47,6 +48,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.webkit.CookieManager;
 import android.webkit.HttpAuthHandler;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
 import android.webkit.SslErrorHandler;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -61,6 +63,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import androidx.core.content.ContextCompat;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.Config;
@@ -136,6 +140,7 @@ public class InAppBrowser extends CordovaPlugin {
     private boolean useWideViewPort = true;
     private ValueCallback<Uri[]> mUploadCallback;
     private final static int FILECHOOSER_REQUESTCODE = 1;
+    private final static int PERMISSIONS_REQUESTCODE = 1234;
     private String closeButtonCaption = "";
     private String closeButtonColor = "";
     private boolean leftToRight = false;
@@ -149,6 +154,18 @@ public class InAppBrowser extends CordovaPlugin {
     private boolean fullscreen = true;
     private String[] allowedSchemes;
     private InAppBrowserClient currentClient;
+    private InAppChromeClient client;
+
+    private void requestPermissionAction(String permission) {
+        cordova.requestPermission(this, PERMISSIONS_REQUESTCODE, permission);
+    }
+
+    @Override
+    public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == PERMISSIONS_REQUESTCODE && grantResults[0] != -1) {
+            this.inAppWebView.reload();
+        }
+    }
 
     /**
      * Executes the request and returns PluginResult.
@@ -920,6 +937,18 @@ public class InAppBrowser extends CordovaPlugin {
                 inAppWebView.setId(Integer.valueOf(6));
                 // File Chooser Implemented ChromeClient
                 inAppWebView.setWebChromeClient(new InAppChromeClient(thatWebView) {
+                    public void onPermissionRequest(final PermissionRequest request) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            if (ContextCompat.checkSelfPermission(
+                                    cordova.getActivity(), Manifest.permission.CAMERA) !=
+                                    PackageManager.PERMISSION_GRANTED) {
+                                requestPermissionAction(Manifest.permission.CAMERA);
+                            } else {
+                                request.grant(request.getResources());
+                            }
+                        }
+                    }
+
                     public boolean onShowFileChooser (WebView webView, ValueCallback<Uri[]> filePathCallback, WebChromeClient.FileChooserParams fileChooserParams)
                     {
                         LOG.d(LOG_TAG, "File Chooser 5.0+");

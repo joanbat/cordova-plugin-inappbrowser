@@ -47,12 +47,6 @@ public class InAppChromeClient extends WebChromeClient {
         this.webView = webView;
     }
     
-    public void onPermissionRequest(final PermissionRequest request) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            request.grant(request.getResources());
-        }
-    }
-
     /**
      * Handle database quota exceeded notification.
      *
